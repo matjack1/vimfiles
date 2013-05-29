@@ -46,7 +46,7 @@ set autoindent                    " keep indentation level when no indent is fou
 "" Wild life
 set wildmenu                      " wildmenu gives autocompletion to vim
 set wildmode=list:longest,full    " autocompletion shouldn't jump to the first match
-set wildignore+=tmp/**,*.rbc,.rbx,*.scssc,*.sassc,*.csv,*.pyc,*.xls
+set wildignore+=tmp/**,*.rbc,.rbx,*.scssc,*.sassc,*.csv,*.pyc,*.xls,*/node_modules/*
 
 "" List chars
 set listchars=""                  " reset the listchars
@@ -90,6 +90,13 @@ if has("autocmd")
   augroup filetype_json
     au!
     au BufNewFile,BufRead *.json setf javascript
+  augroup END
+
+  " slim filetype
+  augroup filetype_slim
+    au!
+    au BufNewFile,BufRead *.slim setf slim
+    au BufNewFile,BufRead *.slim set ft=slim
   augroup END
 
   " make Python follow PEP8 ( http://www.python.org/dev/peps/pep-0008/ )
@@ -197,3 +204,48 @@ let g:gundo_right = 1
 let g:html_indent_inctags = "html,body,head,tbody"
 let g:html_indent_script1 = "inc"
 let g:html_indent_style1 = "inc"
+
+set exrc
+set secure
+
+" testing helpers
+function! RunTests(filename)
+" Write the file and run tests for the given filename
+    :w
+    :silent !echo;echo;echo;echo;echo
+    exec ":!zeus rspec " . a:filename
+endfunction
+
+function! SetTestFile()
+" Set the spec file that tests will be run for.
+    let t:grb_test_file=@%
+endfunction
+
+function! RunTestFile(...)
+    if a:0
+        let command_suffix = a:1
+    else
+        let command_suffix = ""
+    endif
+
+" Run the tests for the previously-marked file.
+    let in_spec_file = match(expand("%"), '_spec.rb$') != -1
+    if in_spec_file
+        call SetTestFile()
+    elseif !exists("t:grb_test_file")
+        return
+    end
+    call RunTests(t:grb_test_file . command_suffix)
+endfunction
+
+function! RunNearestTest()
+    let spec_line_number = line('.')
+    call RunTestFile(":" . spec_line_number)
+endfunction
+
+" Run this file
+nnoremap <leader>t :call RunTestFile()<cr>
+" Run only the example under the cursor
+nnoremap <leader>T :call RunNearestTest()<cr>
+" Run all test files
+nnoremap <leader>A :call RunTests('spec')<cr>
